@@ -30,7 +30,9 @@ class perceptron
 
         // to calculate the input to each perceptron we must pass the input features which a part of the structure myFeatures, and also the weight array to
         // that particular perceptron which we read from the weight file
-        void setInput(double *ipFeatures, double *w);
+        void setInput(double val);
+        //void setInput(double ipFeatures[]);
+        void setInput(double ipFeatures[], double w[]);
         double getInput();
 
         // no need of input parameters since it will use the private data input

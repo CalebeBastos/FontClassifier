@@ -11,9 +11,13 @@
 #include <fstream>
 #include <iomanip>
 #include <algorithm>
+#include <cmath>
 #include "datatypes.h"
+#include "perceptron.h"
 
 void GenerateWeights();
+void readWeights(double w[][MAXIN+1], double v[][MAXH+1]);
+double derivative(double );
 
 using namespace std;
 
@@ -26,7 +30,8 @@ int main()
     vector<myFeatures> myData;
     myFeatures myFeature;
     // create an ifstream object to read in from the file
-    ifstream fin("norm.txt");
+    ifstream fin("norm.txt");   //hardcoded norm.txt. need to chage it sometime later
+    ofstream fout(WEIGHTS_OUT);
     if (!fin)
     {
         cout << "the file could not be opened";
@@ -65,9 +70,148 @@ int main()
     fin.close();
     /****************************************************** done reading the features from the file upto here *****************************************************/
 
-    random_shuffle(myData.begin(), myData.end()); // randomly shuffle elements of the vector myData
+    //GenerateWeights();   // Uncomment this if you want to try out with a different set of weights
 
-    GenerateWeights();
+    perceptron* ipLayer = new perceptron[MAXIN];
+    perceptron* hLayer = new perceptron[MAXH];
+    perceptron* opLayer = new perceptron[MAXOUT];
+
+    for (int i = 0; i < MAXIN+1; i++)
+    {
+    	// the 0th position is the bias term
+    	ipLayer[i].setLayer(1);
+    	ipLayer[i].setPosPerceptron(i);
+    }
+    for (int i = 0; i < MAXH+1; i++)
+    {
+    	// the 0th position is the bias term
+    	hLayer[i].setLayer(2);
+    	hLayer[i].setPosPerceptron(i);
+    }
+    for (int i = 0; i < MAXOUT; i++)
+    {
+    	opLayer[i].setLayer(3);
+    	hLayer[i].setPosPerceptron(i);
+    }
+
+    /**************************************************** trying to train the net from here onwards ***************************************************************/
+    //double inW[MAXIN+1] = {1}; // weight matrix for the input layer
+    double inLayerOut[MAXIN + 1] = {0}; // output of the input layer
+    double w[MAXH][MAXIN+1] = {0}; // weight from hidden to input layer
+    double hLayerOut[MAXH + 1] = {0}; // output of the hidden layer
+    double v[MAXOUT][MAXH+1] = {0}; // weight from output to hidden layer
+    double opLayerOut[MAXOUT] = {0}; // output from the ouput layer
+    double desired[MAXOUT] = {0}; // desired output vector of the net, every other element is 0 except one of them. if A 0th element is 1, if B 1st element is 1 and so on.
+
+    for(int n = 0; n < N_ITERATIONS; n++)
+    {
+    	random_shuffle(myData.begin(), myData.end()); // randomly shuffle elements of the vector myData
+
+		// looping through each of the input vectors (one epoch)
+		int i = 0;
+		for(i = 0; i < NUMFV; i++)
+		{
+			// read in the weights from the weight file
+			readWeights(w, v);
+
+			// cout << w[0][0] << " " << w[0][1] << " " << w[0][2] << endl;
+			// cout << v[0][0] << " " << v[0][1] << " " << v[0][2] << endl;
+
+			// filling out the output vector i.e. the desired output for that particular input vector
+			for (int j = 0; j < MAXOUT; j++)
+			{
+				if(myData[i].alphabet == j)
+				{
+					desired[j] = 1;
+				}
+				else
+				{
+					desired[j] = 0;
+				}
+			}
+
+			/***************************************************** starting forward propagation ****************************************************/
+			// looping through all the input nodes
+			for(int j = 0; j < MAXIN+1; j++)
+			{
+				if (j == 0)
+					ipLayer[j].setInput(-1);
+				else
+					ipLayer[j].setInput(myData[i].feature[j-1]);  // replace 0 by i once the outer loop is opened
+				ipLayer[j].setOutput();
+				inLayerOut[j] = ipLayer[j].getOutput();
+			}
+
+			// looping through all the hidden nodes
+			for(int j = 0; j < MAXH+1; j++)
+			{
+				if (j == 0)
+					hLayer[j].setInput(-1);
+				else
+					hLayer[j].setInput(inLayerOut, w[j-1]);
+				hLayer[j].setOutput();
+				hLayerOut[j] = hLayer[j].getOutput();
+			}
+
+			// looping through all the output nodes
+			for(int j = 0; j < MAXOUT; j++)
+			{
+				opLayer[j].setInput(hLayerOut, v[j]);
+				opLayer[j].setOutput();
+				opLayerOut[j] = opLayer[j].getOutput();
+			}
+
+			/******************************************************** starting backward propagation **********************************************/
+			// correcting the weights from hidden nodes to output nodes
+			for(int k = 0; k < MAXOUT; k++)
+			{
+				for(int j = 0; j < MAXH+1; j++)
+				{
+					v[k][j] = v[k][j] + ETA * (desired[k] - opLayerOut[k]) * derivative(opLayer[k].getInput()) * hLayer[j].getOutput();
+					//fout << v[k][j];
+				}
+				//fout << "\n";
+			}
+
+			// correcting the weights from input nodes to output nodes
+			for(int j = 0; j < MAXH+1; j++)
+			{
+				for(int k = 0; k < MAXIN+1; k++ )
+				{
+					int del = 0;
+					for(int p = 0; p < MAXOUT; p++)
+					{
+						del = del + (desired[p] - opLayerOut[p]) * derivative(opLayer[p].getInput()) * v[p][j];
+					}
+					w[j][k] = w[j][k] + ETA * derivative(hLayer[j].getInput()) * ipLayer[k].getInput() *  del;
+					//fout << w[k][j];
+				}
+				//fout << "\n";
+			}
+
+		}
+
+		// write the weights at the end of each epoch to a file
+		for (int k = 0; k < MAXOUT; k++)
+		{
+			for (int j = 0; j < MAXH+1; j++)
+			{
+				fout << v[k][j];
+			}
+			fout << "\n";
+		}
+
+		for (int j = 0; j < MAXH+1; j++)
+		{
+			for (int k = 0; k < MAXIN+1; k++)
+			{
+				fout << w[k][j];
+			}
+			fout << "\n";
+		}
+    }
+
+    /********************************************************************* trying to test the net from here onwards *********************************************************/
 
 
     return 0;
@@ -120,4 +264,27 @@ void GenerateWeights()
         outfile << endl;
     }
     outfile.close();
+}
+
+void readWeights(double w[][MAXIN+1], double v[][MAXH+1])
+{
+	//double w[MAXH][MAXIN] = {0.00};
+	//double v[MAXOUT][MAXH] = {0.00};
+	ifstream infile(WEIGHT_FILE_NAME);
+
+	for (int i = 0; i < MAXH; i++)
+		for (int j = 0; j <= MAXIN; j++)
+			infile >> w[i][j]; // input to hidden
+
+	for (int i = 0; i < MAXOUT; i++)
+		for (int j = 0; j <= MAXH; j++ )
+			infile >> v[i][j]; // hidden to output
+}
+
+double derivative(double ip)
+{
+	double output;
+	output = 1.0/(1+exp(-ip));
+	output  = output - pow(output, 2);
+	return output;
 }

@@ -28,7 +28,7 @@
 
 #define RESULTS_OUT_NAME "bp.out"
 #define WEIGHTS_IN "bpw.in"
-#define WEIGHTS_OUT "bpw.out"
+#define WEIGHTS_OUT "bpw.txt"
 #define WEIGHT_FILE_NAME "genw.txt" // for genweights
 
 struct myFeatures

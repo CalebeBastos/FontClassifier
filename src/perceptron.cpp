@@ -36,20 +36,28 @@ int perceptron::getLayer()
     return layer;
 }
 
-void perceptron::setInput(double *ipFeatures, double *w)
+void perceptron::setInput(double val)
 {
-    if(layer == 1)
+	input = val;
+}
+
+
+/*void perceptron::setInput(double ipFeatures[])
+{
+	input = ipFeatures[posPerceptron-1];
+}*/
+
+
+void perceptron::setInput(double ipFeatures[], double w[])
+{
+    if(layer == 2)
     {
-        input = ipFeatures[posPerceptron];
+    	for(int i = 0; i < MAXIN+1; i++)
+		{
+			input += ipFeatures[i] * w[i];
+		}
     }
-    else if(layer == 2)
-    {
-        for(int i = 0; i < MAXIN+1; i++)
-        {
-            input += ipFeatures[i] * w[i];
-        }
-    }
-    else
+    else if(layer == 3)
     {
         for(int i = 0; i < MAXH+1; i++)
         {
@@ -65,7 +73,18 @@ double perceptron::getInput()
 
 void perceptron::setOutput()
 {
-    output = 1.0/(1+exp(-input));
+	if (layer == 1)
+	{
+		output =  input;
+	}
+	else if (layer == 2 && posPerceptron  == 0)
+	{
+		output = input; // -1 i.e. the bias term for hidden node
+	}
+	else
+	{
+		output = 1.0/(1+exp(-input));
+	}
 }
 
 double perceptron::getOutput()
