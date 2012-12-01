@@ -21,7 +21,7 @@
 #define MAXIN 14 // number of input nodes
 #define MAXH 20 // number of nodes hidden layer
 #define MAXOUT 26 // number of nodes output layer
-#define N_ITERATIONS 10 // times to train the network
+#define N_ITERATIONS 100 // times to train the network
 #define NUMFV 78 // number of feature vectors total
 #define NUMUV 78 // number of test vectors
 #define LOG_MOD 10 // print results every LOG_MOD iterations

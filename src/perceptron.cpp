@@ -10,6 +10,7 @@
 
 perceptron::perceptron()
 {
+	input = 0.0;
 }
 
 perceptron::~perceptron()
