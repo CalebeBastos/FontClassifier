@@ -85,7 +85,8 @@ void perceptron::setOutput()
 	}
 	else
 	{
-		output = 1.0/(1+exp(-input));
+		//output = 1.0/(1+exp(-input));
+		output = (exp(input) - exp(-input))/(exp(input) + exp(-input));
 	}
 }
 

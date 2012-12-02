@@ -18,11 +18,11 @@
 
 #define ALPHA 0.0 // momentum factor
 #define ETA 1 // learning rate
-#define MAXIN 14 // number of input nodes
-#define MAXH 20 // number of nodes hidden layer
-#define MAXOUT 26 // number of nodes output layer
-#define N_ITERATIONS 500 // times to train the network
-#define NUMFV 78 // number of feature vectors total
+#define MAXIN 2 // number of input nodes
+#define MAXH 4 // number of nodes hidden layer
+#define MAXOUT 2 // number of nodes output layer
+#define N_ITERATIONS 200 // times to train the network
+#define NUMFV 4 // number of feature vectors total
 #define NUMUV 78 // number of test vectors
 #define LOG_MOD 10 // print results every LOG_MOD iterations
 

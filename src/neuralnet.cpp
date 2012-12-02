@@ -77,6 +77,11 @@ int main()
     }
     fin.close();
 
+
+    /***************************************************** set up for and gate ***********************************************************************************/
+    double andFeature[4][2] = {{0.0, 0.0}, {0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}};
+
+
     /****************************************************** done reading the features from the file upto here *****************************************************/
 
     //GenerateWeights();   // Uncomment this if you want to try out with a different set of weights
@@ -123,9 +128,9 @@ int main()
 
     double desired[MAXOUT] = {0};
 
-    double v[MAXOUT][MAXH+1] = {{0}};
-    double w[MAXH][MAXIN+1] = {{0}};
-    readWeights(w, v);
+    double v[MAXOUT][MAXH+1] = {{0.2, 0.84, 0.57}, {0.01, 0.67, 0.28}};
+    double w[MAXH][MAXIN+1] = {{0.59, 0.78, 0.99}, {0.10, 0.20, 0.7}};
+    //readWeights(w, v);
     double del = 0;  // blunder
     for(itIndex = 0; itIndex < N_ITERATIONS; itIndex++)   //open this loop only when you are sure that the inside stuffs is working
     {
@@ -133,7 +138,7 @@ int main()
     		for(fVectorIndex = 0; fVectorIndex < NUMFV; fVectorIndex++) //open this loop only when you are sure that the inside stuffs is working fine
     		{
     			// finding out the desired output vector depending upon the alphabet
-    			for(opLayerIndex = 0; opLayerIndex < MAXOUT; opLayerIndex++)
+    			/*for(opLayerIndex = 0; opLayerIndex < MAXOUT; opLayerIndex++)
     			{
     				if(myData[fVectorIndex].alphabet == opLayerIndex)
     				{
@@ -143,6 +148,17 @@ int main()
     				{
     					desired[opLayerIndex] = 0;
     				}
+    			}*/
+
+    			if(fVectorIndex == 3)
+    			{
+    				desired[0] = 1.0;
+    				desired[1] = 0.0;
+    			}
+    			else
+    			{
+    				desired[0] = 0.0;
+    				desired[1] = 1.0;
     			}
 
     			/********************************************************* starting forward propagation ***********************************************/
@@ -155,7 +171,7 @@ int main()
     				}
     				else
     				{
-    					ipLayer[ipLayerIndex].setInput(myData[fVectorIndex].feature[ipLayerIndex - 1]);
+    					ipLayer[ipLayerIndex].setInput(andFeature[fVectorIndex][ipLayerIndex-1]);
     				}
     				ipLayer[ipLayerIndex].setOutput();
     				ipLayerOutput[ipLayerIndex] = ipLayer[ipLayerIndex].getOutput();
@@ -186,13 +202,13 @@ int main()
     				opLayer[opLayerIndex].setInput(hLayerOutput, v[opLayerIndex]);
     				opLayer[opLayerIndex].setOutput();
     				opLayerOutput[opLayerIndex] = opLayer[opLayerIndex].getOutput();
-    				if(fVectorIndex == 0)
+    				if(fVectorIndex == 3)
     				{
     					cout << opLayerOutput[opLayerIndex] << "  ";
     				}
 
     			}
-    			if(fVectorIndex == 0)
+    			if(fVectorIndex == 3)
     			{
     				cout << endl;
     			}
@@ -317,9 +333,9 @@ void readWeights(double w[][MAXIN+1], double v[][MAXH+1])
 
 double derivative(double ip)
 {
-	double output;   //blunder
-	double var;
-	var = 1 + exp(-ip);
-	output = (exp(-ip))/(var*var);
+	double output = 0.0;   //blunder
+	double var = 0.0;
+	var = (exp(ip) - exp(-ip))/(exp(ip) + exp(-ip));
+	output = 1 - var * var;
 	return output;
 }
