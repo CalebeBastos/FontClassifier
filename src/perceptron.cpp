@@ -51,6 +51,7 @@ void perceptron::setInput(double val)
 
 void perceptron::setInput(double ipFeatures[], double w[])
 {
+	input = 0.0;    //blunder
     if(layer == 2)
     {
     	for(int i = 0; i < MAXIN+1; i++)

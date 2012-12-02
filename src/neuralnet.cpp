@@ -39,6 +39,7 @@ int main()
         return 0;
     }
 
+    int num0 = 0;
     int num1 = 0;
     double num2 = 0.0;
     int count = 0;
@@ -49,26 +50,33 @@ int main()
         {
             if(count == 0)
             {
-                fin >> num1;
-                myFeature.alphabet = num1;
+                fin >> num0;
+                myFeature.alphabet = num0;
+                count++;
             }
             else if(count == 1)
             {
                 fin >> num1;
                 myFeature.font = num1;
+                count++;
             }
             else
             {
                 fin >> num2;
                 myFeature.feature[count-2] = num2;
+                count++;
             }
-        count++;
+
+        //count++;
         }
         myData.push_back(myFeature);
         _NUMDATA_++;
-        if(fin >> num1 == NULL) break;
+        //if(fin >> num1 == NULL) break;    blunder!!
+        if(_NUMDATA_ == 156)
+        	break;
     }
     fin.close();
+
     /****************************************************** done reading the features from the file upto here *****************************************************/
 
     //GenerateWeights();   // Uncomment this if you want to try out with a different set of weights
@@ -95,202 +103,145 @@ int main()
     	hLayer[i].setPosPerceptron(i);
     }
 
-    /**************************************************** trying to train the net from here onwards ***************************************************************/
-    //double inW[MAXIN+1] = {1}; // weight matrix for the input layer
-    double inLayerOut[MAXIN + 1] = {0}; // output of the input layer
-    double w[MAXH][MAXIN+1] = {{0}}; // weight from hidden to input layer
-    double hLayerOut[MAXH + 1] = {0}; // output of the hidden layer
-    double v[MAXOUT][MAXH+1] = {{0}}; // weight from output to hidden layer
-    double opLayerOut[MAXOUT] = {0}; // output from the ouput layer
-    double desired[MAXOUT] = {0}; // desired output vector of the net, every other element is 0 except one of them. if A 0th element is 1, if B 1st element is 1 and so on.
-    // read in the weights from the initial weight file(i.e the randomly generated weights using GenerateWeights function)
+    int itIndex = 0;		// iterator for the number of iterations
+    int fVectorIndex = 0;	// iterator for the feature vectors
+    int ipLayerIndex = 0;	// iterator for the input layer perceptrons
+    int hLayerIndex = 0;	// iterator for the hidden layer perceptrons
+    int opLayerIndex = 0;	// iterator for the output layer perceptrons
+    int i = 0, j = 0, k = 0, p = 0;
+
+    double max = 0.0;
+    int maxIndex = 0;
+    int totalCorrect = 0;
+
+    double ipLayerInput[MAXIN+1] = {0}; // input to input layer
+    double ipLayerOutput[MAXIN+1] = {0}; // output of the input layer
+    double hLayerInput[MAXH+1] = {0};	// input to hidden layer
+    double hLayerOutput[MAXH+1] = {0};	// output of hidden layer
+    double opLayerInput[MAXOUT] ={0};	// input to the output layer
+    double opLayerOutput[MAXOUT] = {0};	// output from the hidden layer
+
+    double desired[MAXOUT] = {0};
+
+    double v[MAXOUT][MAXH+1] = {{0}};
+    double w[MAXH][MAXIN+1] = {{0}};
     readWeights(w, v);
-    //cout << w[0][0] << " " << w[0][1] << " " << w[0][2] << endl;
-    //cout << v[0][0] << " " << v[0][1] << " " << v[0][2] << endl;
-
-    for(int n = 0; n < N_ITERATIONS; n++)
+    double del = 0;  // blunder
+    for(itIndex = 0; itIndex < N_ITERATIONS; itIndex++)   //open this loop only when you are sure that the inside stuffs is working
     {
-    	//random_shuffle(myData.begin(), myData.end()); // randomly shuffle elements of the vector myData
+    	totalCorrect = 0;
+    		for(fVectorIndex = 0; fVectorIndex < NUMFV; fVectorIndex++) //open this loop only when you are sure that the inside stuffs is working fine
+    		{
+    			// finding out the desired output vector depending upon the alphabet
+    			for(opLayerIndex = 0; opLayerIndex < MAXOUT; opLayerIndex++)
+    			{
+    				if(myData[fVectorIndex].alphabet == opLayerIndex)
+    				{
+    					desired[opLayerIndex] = 1;
+    				}
+    				else
+    				{
+    					desired[opLayerIndex] = 0;
+    				}
+    			}
 
-		// looping through each of the input vectors (one epoch)
-		int i = 0;
-		double mse = 0;
-		int numCorrect = 0;
-		for(i = 0; i < NUMFV; i++)
-		{
-			// filling out the output vector i.e. the desired output for that particular input vector
-			for (int j = 0; j < MAXOUT; j++)
-			{
-				if(j == myData[i].alphabet)
-				{
-					desired[j] = 1;
-				}
-				else
-				{
-					desired[j] = 0;
-				}
-			}
+    			/********************************************************* starting forward propagation ***********************************************/
+    			// looping through each input perceptron and setting their input as well as calculating their output
+    			for(ipLayerIndex = 0; ipLayerIndex <= MAXIN; ipLayerIndex++)
+    			{
+    				if(ipLayerIndex == 0)
+    				{
+    					ipLayer[ipLayerIndex].setInput(-1.0);
+    				}
+    				else
+    				{
+    					ipLayer[ipLayerIndex].setInput(myData[fVectorIndex].feature[ipLayerIndex - 1]);
+    				}
+    				ipLayer[ipLayerIndex].setOutput();
+    				ipLayerOutput[ipLayerIndex] = ipLayer[ipLayerIndex].getOutput();
+    				//cout << ipLayerOutput[ipLayerIndex] << "  ";
+    			}
+    			//cout << endl;
 
-			/***************************************************** starting forward propagation ****************************************************/
-			// looping through all the input nodes
-			for(int j = 0; j < MAXIN+1; j++)
-			{
-				if (j == 0)
-				{
-					ipLayer[j].setInput(-1);
-				}
-				else
-				{
-					ipLayer[j].setInput(myData[i].feature[j-1]);  // replace 0 by i once the outer loop is opened
-				}
-				ipLayer[j].setOutput();
-				inLayerOut[j] = ipLayer[j].getOutput();
-				//cout << inLayerOut[j] << "  ";
-			}
+    			// looping through each hidden perceptron and setting their input as well as calculating their output
+    			for(hLayerIndex = 0; hLayerIndex <= MAXH; hLayerIndex++)
+    			{
+    				if(hLayerIndex == 0)
+    				{
+    					hLayer[hLayerIndex].setInput(-1.0);
+    				}
+    				else
+    				{
+    					hLayer[hLayerIndex].setInput(ipLayerOutput, w[hLayerIndex-1]);
+    				}
+    				//cout << hLayer[hLayerIndex].getInput() << "  ";
+    				hLayer[hLayerIndex].setOutput();
+    				hLayerOutput[hLayerIndex] = hLayer[hLayerIndex].getOutput();
+    				//cout << hLayerOutput[hLayerIndex] << "  " ;
+    			}
+    			//cout << endl;
 
-			//looping through all the hidden nodes
-			for(int j = 0; j < MAXH+1; j++)
-			{
-				if (j == 0)
-					hLayer[j].setInput(-1);
-				else
-					hLayer[j].setInput(inLayerOut, w[j-1]);
-				//cout << hLayer[j].getInput() << "  ";
-				hLayer[j].setOutput();
-				hLayerOut[j] = hLayer[j].getOutput();
-				//cout << hLayerOut[j] << "  ";
-			}
+    			for(opLayerIndex = 0; opLayerIndex < MAXOUT; opLayerIndex++)
+    			{
+    				opLayer[opLayerIndex].setInput(hLayerOutput, v[opLayerIndex]);
+    				opLayer[opLayerIndex].setOutput();
+    				opLayerOutput[opLayerIndex] = opLayer[opLayerIndex].getOutput();
+    				if(fVectorIndex == 0)
+    				{
+    					cout << opLayerOutput[opLayerIndex] << "  ";
+    				}
 
+    			}
+    			if(fVectorIndex == 0)
+    			{
+    				cout << endl;
+    			}
 
-			// looping through all the output nodes
-			for(int j = 0; j < MAXOUT; j++)
-			{
-				opLayer[j].setInput(hLayerOut, v[j]);
-				//cout << opLayer[j].getInput() << "  ";
-				opLayer[j].setOutput();
-				opLayerOut[j] = opLayer[j].getOutput();
-				//cout << opLayerOut[j] << "  ";
-			}
-			//cout << endl;
-			/******************************************************** starting backward propagation **********************************************/
+    			/******************************************************************** starting backpropagation ***********************************************************/
+    			for(j = 0; j < MAXH; j++)
+    			{
+    				for(k = 0; k <= MAXIN; k++)
+    				{
+    					del = 0.0;
+    					for(p = 0; p < MAXOUT; p++)
+    					{
+    						del = del + (desired[p] - opLayerOutput[p]) * derivative(opLayer[p].getInput()) * v[p][j];
+    					}
+    					w[j][k] = w[j][k] + ETA * derivative(hLayer[j].getInput())* ipLayer[k].getInput() * del;
+    				}
+    			}
 
-			// correcting the weights from input nodes to output nodes
-			for(int j = 0; j < MAXH+1; j++)
-			{
-				for(int k = 0; k < MAXIN+1; k++ )
-				{
-					double del = 0.0;
-					for(int p = 0; p < MAXOUT; p++)
-					{
-						del = del +  (desired[p] - opLayerOut[p]) * derivative(opLayer[p].getInput()) * v[p][j];
-					}
-					w[j][k] = w[j][k] + ETA * derivative(hLayer[j].getInput()) * ipLayer[k].getInput() *  del;
-					//fout << w[k][j];
-				}
-				//fout << "\n";
-			}
+    			for(k = 0; k < MAXOUT; k++)
+    			{
+    				for(j = 0; j <= MAXH; j++)
+    				{
+    					v[k][j] = v[k][j] + ETA * (desired[k] - opLayerOutput[k]) * derivative(opLayer[k].getInput()) * hLayer[j].getOutput();
+    				}
+    			}
 
+    			/*
+    			max = -100.0;
+    			maxIndex = 0;
+    			for (opLayerIndex = 0; opLayerIndex < MAXOUT; opLayerIndex++)
+    			{
+    				if(opLayerOutput[opLayerIndex] > max)
+    				{
+    					max = opLayerOutput[opLayerIndex];
+    					maxIndex = opLayerIndex;
+    				}
+    			}
 
-			// correcting the weights from hidden nodes to output nodes
-			for(int k = 0; k < MAXOUT; k++)
-			{
-				for(int j = 0; j < MAXH+1; j++)
-				{
-					v[k][j] = v[k][j] + ETA * (desired[k] - opLayerOut[k]) * derivative(opLayer[k].getInput()) * hLayer[j].getOutput();
-					//fout << v[k][j];
-				}
-				//fout << "\n";
-			}
-
-			int max = -100;
-			int index = 0;
-			for (int j = 0; j < MAXOUT; j++)
-			{
-				if (opLayerOut[j] > max)
-				{
-					index = j;
-				}
-			}
-
-			if(index == myData[i].alphabet)
-			{
-				numCorrect++;
-			}
-
-			for (int j = 0; j < MAXOUT; j++)
-			{
-				mse += (desired[j] - opLayerOut[j]) * (desired[j] - opLayerOut[j]);
-			}
-
-		} // end of each epoch
+    			if(maxIndex == myData[fVectorIndex].alphabet)
+    			{
+    				totalCorrect++;
+    			}*/
 
 
-		// displaying mean squared error after each epoch to see if the net is training itself or not
-		cout << "mse" << n << ": " << mse << "  ";
-		cout << "total correctly identified" << numCorrect << endl;
+    		} // end of an epoch
 
-		// write the weights at the end of each epoch to a file
-		for (int k = 0; k < MAXOUT; k++)
-		{
-			for (int j = 0; j < MAXH+1; j++)
-			{
-				fout << v[k][j];
-			}
-			fout << "\n";
-		}
+    		//cout << "total vectors correctly classified in iteration " << itIndex << ": " << totalCorrect << endl;
 
-		for (int j = 0; j < MAXH+1; j++)
-		{
-			for (int k = 0; k < MAXIN+1; k++)
-			{
-				fout << w[k][j];
-			}
-			fout << "\n";
-		}
-
-    } // end of all epochs
-
-    /********************************************************************* trying to test the net from here onwards *********************************************************/
-    /*int i = 0;
-    for (i = 0; i < NUMFV; i++) // testing for the training data; once you are sure the net is working fine test for testing data
-    {
-		// looping through all the input nodes
-		for(int j = 0; j < MAXIN+1; j++)
-		{
-			if (j == 0)
-				ipLayer[j].setInput(-1);
-			else
-				ipLayer[j].setInput(myData[i].feature[j-1]);  // replace 0 by i once the outer loop is opened
-			ipLayer[j].setOutput();
-			inLayerOut[j] = ipLayer[j].getOutput();
-		}
-
-		// looping through all the hidden nodes
-		for(int j = 0; j < MAXH+1; j++)
-		{
-			if (j == 0)
-				hLayer[j].setInput(-1);
-			else
-				hLayer[j].setInput(inLayerOut, w[j-1]);
-				hLayer[j].setOutput();
-				hLayerOut[j] = hLayer[j].getOutput();
-		}
-
-		// looping through all the output nodes
-		for(int j = 0; j < MAXOUT; j++)
-		{
-			opLayer[j].setInput(hLayerOut, v[j]);
-			opLayer[j].setOutput();
-			opLayerOut[j] = opLayer[j].getOutput();
-		}
-
-		cout << "displaying the output vector " << endl;
-		for (int j = 0; j < MAXOUT; j++)
-		{
-		  	cout << opLayerOut[j];
-		}
-		cout << endl;
-    }*/
+    }   //end of the total iterations(all epochs)
 
 
     return 0;
@@ -301,12 +252,12 @@ int main()
 */
 void GenerateWeights()
 {
-    float double_off;
+    double double_off;
     int i;
     int j;
-    float offset;
+    double offset;
     ofstream outfile;
-    float x;
+    double x;
 
     offset = 0.1;
     double_off = offset * 2.0;
@@ -349,6 +300,11 @@ void readWeights(double w[][MAXIN+1], double v[][MAXH+1])
 	//double w[MAXH][MAXIN] = {0.00};
 	//double v[MAXOUT][MAXH] = {0.00};
 	ifstream infile(WEIGHT_FILE_NAME);
+	if(!infile)
+	{
+		cout << "cannot open the file!";
+		exit(0);
+	}
 
 	for (int i = 0; i < MAXH; i++)
 		for (int j = 0; j <= MAXIN; j++)
@@ -361,11 +317,9 @@ void readWeights(double w[][MAXIN+1], double v[][MAXH+1])
 
 double derivative(double ip)
 {
-	double output;
+	double output;   //blunder
 	double var;
-	//output = (exp(-ip))/pow((1+exp(-ip)),2);
 	var = 1 + exp(-ip);
-
 	output = (exp(-ip))/(var*var);
 	return output;
 }
